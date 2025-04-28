@@ -40,7 +40,7 @@ class Player:
         self.y = 1
         self.rect.topleft = (self.x * self.tile_size, self.y * self.tile_size)
    
-    def retroceder_camino(self, screen, maze, level):
+    async def retroceder_camino(self, screen, maze, level):
             # Copiamos el historial para no modificarlo mientras retrocedemos
             screen.fill((0, 0, 0))
             #camino = list(reversed(self.historial))
@@ -61,7 +61,8 @@ class Player:
                 pygame.display.update()
                 
                 # Pequeña pausa para dar efecto de "caminar hacia atrás"
-                pygame.time.delay(50)
+                await asyncio.sleep(0.1)
+                
 
             # Limpiamos el historial al terminar el retroceso
             self.historial.clear()    
@@ -205,13 +206,14 @@ def draw_maze(screen, maze, tile_size,level):
             else:
                 screen.blit(wall_img, (x * tile_size, y * tile_size))
 
-def mostrar_explosion(screen, x, y, explosion_frames):
+async def mostrar_explosion(screen, x, y, explosion_frames):
     """Muestra una animación de explosión en (x, y)."""
     for frame in explosion_frames:
         screen.fill((0, 0, 0))  # Limpiar la pantalla a negro
         screen.blit(frame, (x, y))
-        pygame.display.update()
-        pygame.time.delay(50)  # Velocidad de animación
+        pygame.display.update() 
+        await asyncio.sleep(0.1)# Velocidad de animación
+    await asyncio.sleep(0.5)
 
 def show_pause_menu(screen):
     font = pygame.font.Font(None, 60)
@@ -366,7 +368,7 @@ async def transition_screen(screen, level):#si se usa
     #screen.fill(WHITE)#cambio
     screen.blit(text, (WIDTH//2 - text.get_width()//2, HEIGHT//2 - text.get_height()//2))
     pygame.display.flip()
-    pygame.time.delay(500)
+    await asyncio.sleep(0.5)
     await show_comic(screen,level)
 
 def wait_for_key():
@@ -558,8 +560,8 @@ async def start_game(screen,initial_level=1):
                     efecto_hurt.play()
                     if(player.vidas>0):
                         #player.reset()
-                        mostrar_explosion(screen, player.rect.centerx - 40, player.rect.centery - 40, explosion_frames)
-                        player.retroceder_camino(screen, maze,level)
+                        await mostrar_explosion(screen, player.rect.centerx - 40, player.rect.centery - 40, explosion_frames)
+                        await player.retroceder_camino(screen, maze,level)
                         player.vidas-=1
                     else:
                         show_loss_screen(screen, time.time() - player_start_time, player.moves)
