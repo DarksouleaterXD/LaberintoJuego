@@ -74,13 +74,14 @@ async def main_menu(screen, start_game_func):
     clock = pygame.time.Clock()
     pygame.display.set_caption("Menú - Laberinto")
 
-    frames = []
-    for i in range(300):
-        frame = pygame.image.load(f"./images/menu/frame_{i:03d}_delay-0.1s.png").convert()
-        frame = pygame.transform.scale(frame, (WIDTH, HEIGHT))
-        frames.append(frame)
-    background = pygame.image.load("./images/fondo.jpeg").convert()
-    background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+    current_frame = 0
+
+    def load_frame(n):
+        frame = pygame.image.load(f"./images/menu/frame_{n:03d}_delay-0.1s.png").convert()
+        return pygame.transform.scale(frame, (WIDTH, HEIGHT))
+
+    current_frame_surface = load_frame(current_frame)
+
 
     logo = pygame.image.load("images/logo.png").convert_alpha()
     titulo_imagen = pygame.image.load("./images/titulo.png").convert_alpha()
@@ -114,13 +115,20 @@ async def main_menu(screen, start_game_func):
         if tiempo_acumulado >= tiempo_frame:
             frame_actual = (frame_actual + 1) % len(frames)
             tiempo_acumulado = 0
-
-        screen.blit(frames[frame_actual], (0, 0))
+            
         last_time, last_moves = get_latest_stats()
 
         dt = clock.tick(60)
         tiempo_acumulado += dt
 
+        # En tu bucle:
+        if tiempo_acumulado >= tiempo_frame:
+            current_frame = (current_frame + 1) % 300
+            current_frame_surface = load_frame(current_frame)
+            tiempo_acumulado = 0
+
+        screen.blit(current_frame_surface, (0, 0))
+    
         screen.blit(logo, (WIDTH // 2 - logo.get_width() // 2, logo_y))
         screen.blit(titulo_imagen, (WIDTH // 2 - titulo_imagen.get_width() // 2, title_y))
 
