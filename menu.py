@@ -84,26 +84,35 @@ def main_menu(screen, start_game_func):
     
     logo = pygame.image.load("images/logo.png").convert_alpha()
     
+    # Cargamos directamente la imagen del título
+    titulo_imagen = pygame.image.load("./images/titulo.png").convert_alpha()
+    
+     # Fuente personalizada
+    font_path = "./images/Fuente_Titulo.otf"
+  
+    stats_font = pygame.font.Font(font_path, 40)   # Más pequeño para los stats (último tiempo, movimientos)
+    
+    # Redimensionar el título si es necesario
+    # titulo_imagen = pygame.transform.scale(titulo_imagen, (nuevo_ancho, nuevo_alto))
+
     font = pygame.font.Font(None, 40)
 
     logo_y = 30
     title_y = logo_y + logo.get_height() + 20
-    stats_y = title_y + 40
+    stats_y = title_y + 100  # subimos stats para dar espacio al título imagen
     buttons_y = stats_y + 100
 
-
-    tiempo_frame = 100  # milisegundos entre frames (0.1s)
+    tiempo_frame = 100
     tiempo_acumulado = 0
     frame_actual = 0
     
     button_width, button_height = 150, 50
-    play_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y, button_width+80, button_height, "Jugar", WHITE, action=lambda: start_game_func(screen,initial_level=1)) 
-    exit_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y + 140, button_width+80, button_height, "Salir", (200, 0, 0), exit_game)
+    play_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y, button_width + 80, button_height, "Jugar", WHITE, action=lambda: start_game_func(screen, initial_level=1)) 
+    exit_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y + 140, button_width + 80, button_height, "Salir", (200, 0, 0), exit_game)
     select_level_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y + 70, button_width + 80, button_height, "Seleccionar Nivel", WHITE, action=lambda: select_level_menu(screen, start_game_func))
+    
     running = True
     while running:
-        
-        
         if tiempo_acumulado >= tiempo_frame:
             frame_actual = (frame_actual + 1) % len(frames)
             tiempo_acumulado = 0
@@ -115,10 +124,13 @@ def main_menu(screen, start_game_func):
         tiempo_acumulado += dt
         
         screen.blit(logo, (WIDTH // 2 - logo.get_width() // 2, logo_y))
-        title_text = font.render(f"LABERINTO VIVIENTE", True, WHITE)
-        time_text = font.render(f"Último tiempo: {last_time} seg", True, WHITE)
-        moves_text = font.render(f"Últimos movimientos: {last_moves}", True, WHITE)
-        screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, title_y))
+        
+        # Mostrar la imagen del título
+        screen.blit(titulo_imagen, (WIDTH // 2 - titulo_imagen.get_width() // 2, title_y))
+        
+        time_text = stats_font.render(f"Último tiempo: {last_time} seg", True, BLACK)
+        moves_text = stats_font.render(f"Últimos movimientos: {last_moves}", True, BLACK)
+        
         screen.blit(time_text, (WIDTH // 2 - time_text.get_width() // 2, stats_y))
         screen.blit(moves_text, (WIDTH // 2 - moves_text.get_width() // 2, stats_y + 40))
 

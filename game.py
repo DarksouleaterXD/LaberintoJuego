@@ -41,9 +41,10 @@ class Player:
    
     def retroceder_camino(self, screen, maze, level):
             # Copiamos el historial para no modificarlo mientras retrocedemos
-            camino = list(reversed(self.historial))
+            screen.fill((0, 0, 0))
+            #camino = list(reversed(self.historial))
 
-            for pos in camino:
+            for pos in reversed(self.historial):
                 # Actualizamos la posición del jugador
                 self.x, self.y = pos
                 self.rect.topleft = (self.x * self.tile_size, self.y * self.tile_size)
@@ -202,6 +203,14 @@ def draw_maze(screen, maze, tile_size,level):
                 screen.blit(floor_img, (x * tile_size, y * tile_size))
             else:
                 screen.blit(wall_img, (x * tile_size, y * tile_size))
+
+def mostrar_explosion(screen, x, y, explosion_frames):
+    """Muestra una animación de explosión en (x, y)."""
+    for frame in explosion_frames:
+        screen.fill((0, 0, 0))  # Limpiar la pantalla a negro
+        screen.blit(frame, (x, y))
+        pygame.display.update()
+        pygame.time.delay(50)  # Velocidad de animación
 
 def show_pause_menu(screen):
     font = pygame.font.Font(None, 60)
@@ -445,6 +454,14 @@ def show_loss_screen(screen, time_taken, moves):#se usa
 
 def start_game(screen,initial_level=1):
     
+    
+    
+    "./images/player/frame_{i}_delay-0.1s.png"
+    explosion_frames = []
+    for i in range(9):  # Cambia NUMERO_FRAMES por el número correcto
+        frame = pygame.image.load(f"./images/explosion/frame_{i:02d}_delay-0.08s.png").convert_alpha()
+        frame = pygame.transform.scale(frame, (80, 80))  # Ajusta tamaño si quieres
+        explosion_frames.append(frame)
     huellas = []
     level = initial_level
     screen = pygame.display.set_mode((WIDTH, HEIGHT))#, pygame.FULLSCREEN)
@@ -542,6 +559,7 @@ def start_game(screen,initial_level=1):
                     efecto_hurt.play()
                     if(player.vidas>0):
                         #player.reset()
+                        mostrar_explosion(screen, player.rect.centerx - 40, player.rect.centery - 40, explosion_frames)
                         player.retroceder_camino(screen, maze,level)
                         player.vidas-=1
                     else:
