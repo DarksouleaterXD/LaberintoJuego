@@ -1,3 +1,4 @@
+import asyncio
 import pygame
 import sys
 from settings import WIDTH, HEIGHT, WHITE, GRAY, BLACK
@@ -66,14 +67,13 @@ def select_level_menu(screen, start_game_func):
             for button in buttons:
                 button.check_click(event)
 
-def main_menu(screen, start_game_func):
-    
+async def main_menu(screen, start_game_func):
     pygame.init()
     pygame.mixer.music.load("./images/nivel5.ogg")
     pygame.mixer.music.play()
     clock = pygame.time.Clock()
     pygame.display.set_caption("Menú - Laberinto")
-    
+
     frames = []
     for i in range(300):
         frame = pygame.image.load(f"./images/menu/frame_{i:03d}_delay-0.1s.png").convert()
@@ -81,69 +81,100 @@ def main_menu(screen, start_game_func):
         frames.append(frame)
     background = pygame.image.load("./images/fondo.jpeg").convert()
     background = pygame.transform.scale(background, (WIDTH, HEIGHT))
-    
-    logo = pygame.image.load("images/logo.png").convert_alpha()
-    
-    # Cargamos directamente la imagen del título
-    titulo_imagen = pygame.image.load("./images/titulo.png").convert_alpha()
-    
-     # Fuente personalizada
-    font_path = "./images/Fuente_Titulo.otf"
-  
-    stats_font = pygame.font.Font(font_path, 40)   # Más pequeño para los stats (último tiempo, movimientos)
-    
-    # Redimensionar el título si es necesario
-    # titulo_imagen = pygame.transform.scale(titulo_imagen, (nuevo_ancho, nuevo_alto))
 
+    logo = pygame.image.load("images/logo.png").convert_alpha()
+    titulo_imagen = pygame.image.load("./images/titulo.png").convert_alpha()
+    font_path = "./images/Fuente_Titulo.otf"
+    stats_font = pygame.font.Font(font_path, 40)
     font = pygame.font.Font(None, 40)
 
     logo_y = 30
     title_y = logo_y + logo.get_height() + 20
-    stats_y = title_y + 100  # subimos stats para dar espacio al título imagen
+    stats_y = title_y + 100
     buttons_y = stats_y + 100
 
     tiempo_frame = 100
     tiempo_acumulado = 0
     frame_actual = 0
-    
+
     button_width, button_height = 150, 50
-    play_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y, button_width + 80, button_height, "Jugar", WHITE, action=lambda: start_game_func(screen, initial_level=1)) 
-    exit_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y + 140, button_width + 80, button_height, "Salir", (200, 0, 0), exit_game)
-    select_level_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y + 70, button_width + 80, button_height, "Seleccionar Nivel", WHITE, action=lambda: select_level_menu(screen, start_game_func))
-    
+
+    # No ponemos lambda, sino un identificador de acción
+    play_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y, button_width + 80, button_height, "Jugar", WHITE, action="play")
+    select_level_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y + 70, button_width + 80, button_height, "Seleccionar Nivel", WHITE, action="select_level")
+    exit_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y + 140, button_width + 80, button_height, "Salir", (200, 0, 0), action="exit")
+
     running = True
+    selected_action = None
+
+    selected_option = 0
+    options = ["Continuar", "Seleccionar Nivel", "Salir"]
+    
     while running:
         if tiempo_acumulado >= tiempo_frame:
             frame_actual = (frame_actual + 1) % len(frames)
             tiempo_acumulado = 0
-            
+
         screen.blit(frames[frame_actual], (0, 0))
         last_time, last_moves = get_latest_stats()
 
         dt = clock.tick(60)
         tiempo_acumulado += dt
-        
+
         screen.blit(logo, (WIDTH // 2 - logo.get_width() // 2, logo_y))
-        
-        # Mostrar la imagen del título
         screen.blit(titulo_imagen, (WIDTH // 2 - titulo_imagen.get_width() // 2, title_y))
-        
+
         time_text = stats_font.render(f"Último tiempo: {last_time} seg", True, BLACK)
         moves_text = stats_font.render(f"Últimos movimientos: {last_moves}", True, BLACK)
-        
+
         screen.blit(time_text, (WIDTH // 2 - time_text.get_width() // 2, stats_y))
         screen.blit(moves_text, (WIDTH // 2 - moves_text.get_width() // 2, stats_y + 40))
 
-        play_button.draw(screen)
-        select_level_button.draw(screen)
-        exit_button.draw(screen)
+        #play_button.draw(screen)
+        #select_level_button.draw(screen)
+        #exit_button.draw(screen)
 
+        
+        
+        small_font = pygame.font.Font(None, 40)
+
+        for i, option in enumerate(options):
+            color = (255, 255, 0) if i == selected_option else (255, 255, 255)
+            text = small_font.render(option, True, color)
+            screen.blit(text, text.get_rect(center=(WIDTH//2, HEIGHT//2 + i * 60 + 100)))
+            
         pygame.display.flip()
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit_game()
-            play_button.check_click(event)
-            select_level_button.check_click(event)
-            exit_button.check_click(event)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    selected_option = (selected_option - 1) % len(options)
+                elif event.key == pygame.K_DOWN:
+                    selected_option = (selected_option + 1) % len(options)
+                elif event.key == pygame.K_RETURN:
+                    if(selected_option==0): return await start_game_func(screen, initial_level=1)
+                    elif(selected_option==1): return await select_level_menu(screen, start_game_func)
+                    elif(selected_option==2): return exit_game()
+                
+            if play_button.check_click(event):
+                selected_action = "play"
+                running = False
+            if select_level_button.check_click(event):
+                selected_action = "select_level"
+                running = False
+            if exit_button.check_click(event):
+                selected_action = "exit"
+                running = False
+        
+        await asyncio.sleep(0)
+
+    # Cuando el menú termina, hacemos la acción correspondiente
+    if selected_action == "play":
+        await start_game_func(screen, initial_level=1)
+    elif selected_action == "select_level":
+        await select_level_menu(screen, start_game_func)
+    elif selected_action == "exit":
+        exit_game()
+
 

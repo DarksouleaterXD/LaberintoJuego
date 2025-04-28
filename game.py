@@ -3,6 +3,7 @@ import time
 import random
 from maze import generate_maze, move_walls_dynamically
 from settings import WIDTH, HEIGHT, WHITE, BLACK, LEVELS
+import asyncio
 
 music_on = True
 # Clases integradas directamente aquí
@@ -293,31 +294,30 @@ def render_multiline_text(text, font, color, max_width):
     lines.append(current_line.strip())
     return lines
 # Game Over, transición y pantallas de victoria/derrota
-def show_comic(screen, level):
+import asyncio
+
+async def show_comic(screen, level):
     comic_texts = {
-    1: "Despertás sin recuerdos. Sin un mapa. Solo sabés una cosa… tenés que salir. Pero, ¿qué acecha en las sombras?",
-    2: "Cada paso deja huella. Pero no todas las huellas llevan a un final. Algunas solo te devuelven al principio… y otras, te llevan a lo desconocido",
-    3: "¿Ya pasé por acá… o es solo mi mente que me traiciona? Algo me observa…",
-    4: "Ahora, el laberinto no solo te encierra. Te corre. Cada segundo cuenta, y el eco de tus latidos se convierte en un grito ensordecedor",
-    5: "En la penumbra… hay rutas que no todos pueden ver. Este nivel no es para cualquiera. ¿Te atreverás a desentrañar sus secretos?",
-    6: "Lo lograste. Pero… ¿qué sacrificaste en el camino? Cada decisión tiene un precio."
+        1: "Despertás sin recuerdos. Sin un mapa. Solo sabés una cosa… tenés que salir. Pero, ¿qué acecha en las sombras?",
+        2: "Cada paso deja huella. Pero no todas las huellas llevan a un final. Algunas solo te devuelven al principio… y otras, te llevan a lo desconocido",
+        3: "¿Ya pasé por acá… o es solo mi mente que me traiciona? Algo me observa…",
+        4: "Ahora, el laberinto no solo te encierra. Te corre. Cada segundo cuenta, y el eco de tus latidos se convierte en un grito ensordecedor",
+        5: "En la penumbra… hay rutas que no todos pueden ver. Este nivel no es para cualquiera. ¿Te atreverás a desentrañar sus secretos?",
+        6: "Lo lograste. Pero… ¿qué sacrificaste en el camino? Cada decisión tiene un precio."
     }
     path = f"./images/Viñeta-{level}.png"
     comic_img = pygame.image.load(path).convert()
-    pygame.mixer.music.load(f"./images/nivel{level}.ogg")  # Asegúrate que el archivo exista
+    pygame.mixer.music.load(f"./images/nivel{level}.ogg")
     pygame.mixer.music.play(-1)
-    
-    # No escalar, solo centrar en pantalla con franjas negras
+
     img_width, img_height = comic_img.get_size()
     screen_ratio = WIDTH / HEIGHT
     img_ratio = img_width / img_height
 
     if img_ratio > screen_ratio:
-        # Imagen más ancha, ajustamos por ancho
         scale_width = WIDTH
         scale_height = int(WIDTH / img_ratio)
     else:
-        # Imagen más alta, ajustamos por alto
         scale_height = HEIGHT
         scale_width = int(HEIGHT * img_ratio)
 
@@ -325,7 +325,6 @@ def show_comic(screen, level):
     x_offset = (WIDTH - scale_width) // 2
     y_offset = (HEIGHT - scale_height) // 2
 
-    # Crear superficie negra para fundido
     black_overlay = pygame.Surface((WIDTH, HEIGHT))
     black_overlay.fill((0, 0, 0))
 
@@ -333,32 +332,32 @@ def show_comic(screen, level):
     text_color = (255, 255, 255)
     narrative = comic_texts.get(level, "")
     lines = render_multiline_text(narrative, font, text_color, WIDTH - 80)
-    
+
     # Fade in
     for alpha in range(255, -1, -15):
-        screen.fill((0, 0, 0))  # Fondo negro
+        screen.fill((0, 0, 0))
         screen.blit(comic_scaled, (x_offset, y_offset))
         black_overlay.set_alpha(alpha)
         screen.blit(black_overlay, (0, 0))
-        
+
         text_bg = pygame.Surface((WIDTH, 100))
         text_bg.fill((0, 0, 0))
         text_bg.set_alpha(200)
         screen.blit(text_bg, (0, HEIGHT - 110))
-        
+
         for i, line in enumerate(lines):
             rendered = font.render(line, True, text_color)
             screen.blit(rendered, (WIDTH // 2 - rendered.get_width() // 2, HEIGHT - 100 + i * 25))
-        
-        pygame.display.flip()
-        pygame.time.delay(300)
-    
-    # Mostrar la imagen final unos segundos
-    pygame.display.flip()
-    pygame.time.delay(4000)
-    
 
-def transition_screen(screen, level):#si se usa
+        pygame.display.flip()
+        await asyncio.sleep(0.03)  # 30 ms, reemplaza pygame.time.delay(300)
+
+    # Mostrar imagen final unos segundos
+    pygame.display.flip()
+    await asyncio.sleep(4)  # 4000 ms = 4 segundos
+
+
+async def transition_screen(screen, level):#si se usa
     background = pygame.image.load("./images/carga.jpg").convert()
     background = pygame.transform.scale(background, (WIDTH, HEIGHT))
     font = pygame.font.Font(None, 60)
@@ -368,7 +367,7 @@ def transition_screen(screen, level):#si se usa
     screen.blit(text, (WIDTH//2 - text.get_width()//2, HEIGHT//2 - text.get_height()//2))
     pygame.display.flip()
     pygame.time.delay(500)
-    show_comic(screen,level)
+    await show_comic(screen,level)
 
 def wait_for_key():
     while True:
@@ -452,7 +451,7 @@ def show_loss_screen(screen, time_taken, moves):#se usa
 
 # Juego principal
 
-def start_game(screen,initial_level=1):
+async def start_game(screen,initial_level=1):
     
     
     
@@ -468,7 +467,7 @@ def start_game(screen,initial_level=1):
     pygame.display.set_caption("Laberinto")
     clock = pygame.time.Clock()
     player_start_time = time.time()
-    efecto_hurt = pygame.mixer.Sound("./images/hurt.mp3")
+    efecto_hurt = pygame.mixer.Sound("./images/hurt.ogg")
     win_sound = pygame.mixer.Sound("./win_sound.wav")
     
     while level <= LEVELS:
@@ -522,7 +521,7 @@ def start_game(screen,initial_level=1):
         corazones = [Corazon(maze["grid"], tile_size, level,player) for _ in range(6 + level * 2)]
         goal = pygame.Rect((cols - 2) * tile_size, (rows - 2) * tile_size, tile_size, tile_size)
 
-        transition_screen(screen, level)
+        await transition_screen(screen, level)
         
         tiempo_frame = 100  # milisegundos entre frames (0.1s)
         tiempo_acumulado = 0
@@ -616,7 +615,7 @@ def start_game(screen,initial_level=1):
 
             dt = clock.tick(60)
             tiempo_acumulado += dt
-
+            await asyncio.sleep(0)
 
     time_taken = round(time.time() - player_start_time, 2)
     show_win_screen(screen, time_taken, player.moves)
