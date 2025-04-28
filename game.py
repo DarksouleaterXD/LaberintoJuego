@@ -16,6 +16,7 @@ class Player:
         self.start_time = time.time()
         self.moves = 0
         self.vidas= 3
+        self.historial = []
         self.frames = []
         for i in range(9):  # Asumiendo 17 frames del 0 al 16
             ruta = f"./images/player/frame_{i}_delay-0.1s.png"
@@ -28,6 +29,7 @@ class Player:
     def move(self, dx, dy, maze):
         if 0 <= self.x + dx < len(maze[0]) and 0 <= self.y + dy < len(maze):
             if maze[self.y + dy][self.x + dx] == 0:
+                self.historial.append((self.x, self.y))
                 self.x += dx
                 self.y += dy
                 self.rect.topleft = (self.x * self.tile_size, self.y * self.tile_size)
@@ -36,7 +38,31 @@ class Player:
         self.x = 1
         self.y = 1
         self.rect.topleft = (self.x * self.tile_size, self.y * self.tile_size)
-             
+   
+    def retroceder_camino(self, screen, maze, level):
+            # Copiamos el historial para no modificarlo mientras retrocedemos
+            camino = list(reversed(self.historial))
+
+            for pos in camino:
+                # Actualizamos la posición del jugador
+                self.x, self.y = pos
+                self.rect.topleft = (self.x * self.tile_size, self.y * self.tile_size)
+                
+                # Limpiamos la pantalla antes de dibujar (opcional, si ves parpadeo feo)
+                screen.fill((0, 0, 0))
+                
+                # Redibujamos todo: laberinto y jugador
+                draw_maze(screen, maze, self.tile_size,level)
+                self.draw(screen)
+                
+                # Actualizamos la pantalla
+                pygame.display.update()
+                
+                # Pequeña pausa para dar efecto de "caminar hacia atrás"
+                pygame.time.delay(50)
+
+            # Limpiamos el historial al terminar el retroceso
+            self.historial.clear()    
 
 
     def draw(self, screen, frame=0):
@@ -153,7 +179,7 @@ class Huella:
 
 # Funciones de visualización y eventos
 
-def draw_maze(screen, maze, tile_size):
+def draw_maze(screen, maze, tile_size,level):
     floor_path = f"./images/suelo{level}.png"
     wall_path = f"./images/piedra{level}.png"
     
@@ -385,7 +411,7 @@ def show_win_screen(screen, time_taken, moves):
     pygame.mixer.music.stop()
     
     from menu import main_menu
-    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))#, pygame.FULLSCREEN)
     main_menu(screen, start_game)
 
 def show_loss_screen(screen, time_taken, moves):#se usa 
@@ -404,7 +430,7 @@ def show_loss_screen(screen, time_taken, moves):#se usa
     pygame.display.flip()
     wait_for_key()
     from menu import main_menu
-    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))#, pygame.FULLSCREEN)
     main_menu(screen, start_game)  # Pasa ambos argumentos: screen y start_game
 
 '''def draw_level_indicator(screen, level):
@@ -421,7 +447,7 @@ def start_game(screen,initial_level=1):
     
     huellas = []
     level = initial_level
-    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))#, pygame.FULLSCREEN)
     pygame.display.set_caption("Laberinto")
     clock = pygame.time.Clock()
     player_start_time = time.time()
@@ -515,7 +541,8 @@ def start_game(screen,initial_level=1):
                 if player.rect.colliderect(monster.rect):
                     efecto_hurt.play()
                     if(player.vidas>0):
-                        player.reset()
+                        #player.reset()
+                        player.retroceder_camino(screen, maze,level)
                         player.vidas-=1
                     else:
                         show_loss_screen(screen, time.time() - player_start_time, player.moves)
