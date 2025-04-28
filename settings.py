@@ -1,0 +1,11 @@
+WIDTH, HEIGHT = 1280, 720
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+BLUE = (0, 0, 255)
+GREEN = (0, 255, 0)
+GRAY = (200, 200, 200)
+RED = (255, 0, 0)
+
+BASE_TILE_SIZE = 30
+DIRECTIONS = [(0, -2), (0, 2), (-2, 0), (2, 0)]
+LEVELS = 6
