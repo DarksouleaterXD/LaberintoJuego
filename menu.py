@@ -3,7 +3,7 @@ import pygame
 import sys
 from settings import WIDTH, HEIGHT, WHITE, GRAY, BLACK
 from ui import Button
-from game import start_game
+from game import start_game, BotonTouch
 
 def exit_game():
     pygame.quit()
@@ -18,36 +18,59 @@ def get_latest_stats():
     except FileNotFoundError:
         last_time, last_moves = "N/A", "N/A"
     return last_time, last_moves
-def select_level_menu(screen, start_game_func):
-    
+async def select_level_menu(screen, start_game_func):
     background = pygame.image.load("./images/fondo.jpeg").convert()
     background = pygame.transform.scale(background, (WIDTH, HEIGHT))
     pygame.font.init()
     font = pygame.font.Font(None, 36)
 
-    # Coordenadas base
     spacing = 20
     button_width, button_height = 80, 50
-    total_width = 6 * button_width + 5 * spacing
+    total_width = 6 * button_width + 6 * spacing
     start_x = WIDTH // 2 - total_width // 2
     y = HEIGHT // 2
 
-    # Crear cada botón de nivel por separado
     def create_action(lvl):
         def start():
-            print(f"Seleccionaste nivel {lvl}")  # Esto te mostrará si está funcionando
+            print(f"Seleccionaste nivel {lvl}")
             start_game_func(screen, lvl)
         return start
 
+    buttons = [
+        Button(start_x + i * (button_width + spacing), y, button_width, button_height, str(i+1), (255,255,255), action=create_action(i+1))
+        for i in range(6)
+    ]
+    return_to_menu_button = Button(start_x + 6 * (button_width + spacing), y, button_width, button_height, "Volver", (255, 100, 100))
+    buttons.append(return_to_menu_button)
+    
+    selected_option = 0
 
-    button_lvl1 = Button(start_x + 0 * (button_width + spacing), y, button_width, button_height, "1", (255,255,255), action=create_action(1))
-    button_lvl2 = Button(start_x + 1 * (button_width + spacing), y, button_width, button_height, "2", (255,255,255), action=create_action(2))
-    button_lvl3 = Button(start_x + 2 * (button_width + spacing), y, button_width, button_height, "3", (255,255,255), action=create_action(3))
-    button_lvl4 = Button(start_x + 3 * (button_width + spacing), y, button_width, button_height, "4", (255,255,255), action=create_action(4))
-    button_lvl5 = Button(start_x + 4 * (button_width + spacing), y, button_width, button_height, "5", (255,255,255), action=create_action(5))
-    button_lvl6 = Button(start_x + 5 * (button_width + spacing), y, button_width, button_height, "6", (255,255,255), action=create_action(6))
+    # Funciones para botones táctiles
+    def option_left():
+        nonlocal selected_option
+        selected_option = (selected_option - 1) % len(buttons)
 
-    buttons = [button_lvl1, button_lvl2, button_lvl3, button_lvl4, button_lvl5, button_lvl6]
+    def option_right():
+        nonlocal selected_option
+        selected_option = (selected_option + 1) % len(buttons)
+
+    def option_select():
+        nonlocal selected_option
+        enter_event = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)
+        pygame.event.post(enter_event)
+
+    # Crear botones táctiles: IZQUIERDA - OK - DERECHA
+    btn_size = 80
+    btn_y = y + button_height + 60
+    btn_left = pygame.Rect(WIDTH // 2 - btn_size*2, btn_y, btn_size, btn_size)
+    btn_ok = pygame.Rect(WIDTH // 2 - btn_size // 2, btn_y, btn_size, btn_size)
+    btn_right = pygame.Rect(WIDTH // 2 + btn_size, btn_y, btn_size, btn_size)
+
+    botones_touch = [
+        BotonTouch(btn_left, option_left, color=(200, 200, 0), hover_color=(255, 255, 0), text="<"),
+        BotonTouch(btn_ok, option_select, color=(200, 255, 200), hover_color=(255, 255, 255), text="OK"),
+        BotonTouch(btn_right, option_right, color=(200, 200, 0), hover_color=(255, 255, 0), text=">")
+    ]
 
     selecting = True
     while selecting:
@@ -55,17 +78,56 @@ def select_level_menu(screen, start_game_func):
         title = font.render("Selecciona un nivel", True, WHITE)
         screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 3))
 
-        for button in buttons:
+        # Dibujar botones de nivel
+        for i, button in enumerate(buttons):
+            if i == selected_option:
+                pygame.draw.rect(screen, (255, 255, 0), button.rect.inflate(10, 10), 3)
             button.draw(screen)
-            #pygame.draw.rect(screen, (255,255,255), pygame.Rect(300, 300, 300, 300), border_radius=10)
+
+        # Dibujar botones táctiles
+        for boton in botones_touch:
+            boton.draw(screen)
 
         pygame.display.flip()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit_game()
+            
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    selected_option = (selected_option - 1) % len(buttons)
+                elif event.key == pygame.K_DOWN:
+                    selected_option = (selected_option + 1) % len(buttons)
+                elif event.key == pygame.K_RETURN:
+                    
+                    if selected_option == 0:
+                        return await start_game_func(screen, initial_level=1)
+                    elif selected_option == 1:
+                        return await start_game_func(screen, 2)
+                    elif selected_option == 2:
+                        return await start_game_func(screen, 3)
+                    
+                    elif selected_option == 3:
+                        return await start_game_func(screen, 4)
+                    elif selected_option == 4:
+                        return await start_game_func(screen, 5)
+                    elif selected_option == 5:
+                        return await start_game_func(screen, 6)
+                    elif selected_option == 6:
+                        return await main_menu(screen, start_game_func)
+                    
+                        
             for button in buttons:
                 button.check_click(event)
+            if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                pos = event.pos if event.type == pygame.MOUSEBUTTONDOWN else (event.x * WIDTH, event.y * HEIGHT)
+                for boton in botones_touch:
+                    if boton.rect.collidepoint(pos):
+                        boton.action()
+        await asyncio.sleep(0)
+
+    
 
 async def main_menu(screen, start_game_func):
     pygame.init()
@@ -73,9 +135,40 @@ async def main_menu(screen, start_game_func):
     pygame.mixer.music.play()
     clock = pygame.time.Clock()
     pygame.display.set_caption("Menú - Laberinto")
+    icon_up = pygame.transform.scale(
+    pygame.image.load("./images/flecha-arriba.png").convert_alpha(), (80, 80)
+    )
+    icon_down = pygame.transform.scale(
+    pygame.image.load("./images/flecha-abajo.png").convert_alpha(), (80, 80)
+    )
+    icon_ok = pygame.transform.scale(
+    pygame.image.load("./images/ok_button.png").convert_alpha(), (80, 80)
+    )
+
 
     current_frame = 0
-
+    selected_option = 0
+    def option_up():
+        nonlocal selected_option
+        selected_option = (selected_option - 1) % len(options)
+    def option_down():
+        nonlocal selected_option
+        selected_option = (selected_option + 1) % len(options)
+    def select_option():
+        nonlocal selected_option
+        enter_event = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)
+        pygame.event.post(enter_event)
+        
+    botones_touch = []
+    # Definir los botones en la izquierda ahora:
+    btn_up = pygame.Rect(150, HEIGHT - 300, 80, 80)
+    btn_down = pygame.Rect(150, HEIGHT - 100, 80, 80)
+    btn_accept = pygame.Rect(150, HEIGHT - 200, 80, 80) 
+    botones_touch = [
+            BotonTouch(btn_up, lambda: option_up(), image=icon_up),
+            BotonTouch(btn_down, lambda: option_down(), image=icon_down),
+            BotonTouch(btn_accept, lambda: select_option(), image=icon_ok),
+    ]
     def load_frame(n):
         frame = pygame.image.load(f"./images/menu/frame_{n:03d}_delay-0.1s.png").convert()
         return pygame.transform.scale(frame, (WIDTH, HEIGHT))
@@ -111,10 +204,12 @@ async def main_menu(screen, start_game_func):
     selected_option = 0
     options = ["Continuar", "Seleccionar Nivel", "Salir"]
     
+    
+    
     while running:
-        if tiempo_acumulado >= tiempo_frame:
+        '''if tiempo_acumulado >= tiempo_frame:
             frame_actual = (frame_actual + 1) % len(frames)
-            tiempo_acumulado = 0
+            tiempo_acumulado = 0'''
             
         last_time, last_moves = get_latest_stats()
 
@@ -150,12 +245,15 @@ async def main_menu(screen, start_game_func):
             color = (255, 255, 0) if i == selected_option else (255, 255, 255)
             text = small_font.render(option, True, color)
             screen.blit(text, text.get_rect(center=(WIDTH//2, HEIGHT//2 + i * 60 + 100)))
-            
+        for boton in botones_touch:
+            boton.draw(screen)    
         pygame.display.flip()
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit_game()
             elif event.type == pygame.KEYDOWN:
+                
                 if event.key == pygame.K_UP:
                     selected_option = (selected_option - 1) % len(options)
                 elif event.key == pygame.K_DOWN:
@@ -164,7 +262,18 @@ async def main_menu(screen, start_game_func):
                     if(selected_option==0): return await start_game_func(screen, initial_level=1)
                     elif(selected_option==1): return await select_level_menu(screen, start_game_func)
                     elif(selected_option==2): return exit_game()
+            elif event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                pos = None
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pos = event.pos  # (x, y) del click
+                elif event.type == pygame.FINGERDOWN:
+                    pos = (event.x * WIDTH, event.y * HEIGHT)  # Normalizado (0-1) en FINGERDOWN
+
                 
+                if pos and botones_touch:
+                    for boton in botones_touch:
+                        if boton.rect.collidepoint(pos):
+                            boton.action()    
             if play_button.check_click(event):
                 selected_action = "play"
                 running = False

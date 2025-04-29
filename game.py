@@ -6,6 +6,7 @@ from settings import WIDTH, HEIGHT, WHITE, BLACK, LEVELS
 import asyncio
 
 music_on = True
+pausado = False
 # Clases integradas directamente aquí
 
 class Player:
@@ -180,6 +181,51 @@ class Huella:
     def draw(self, screen, imagen):
         screen.blit(imagen, (self.pos[0] - imagen.get_width()//2, self.pos[1] - imagen.get_height()//2))             
 
+class BotonTouch:
+    def __init__(self, rect, action, color=(0, 200, 0), hover_color=(0, 255, 0), text="",image=None):
+        self.rect = rect
+        self.action = action
+        self.color = color
+        self.hover_color = hover_color
+        self.text = text
+        self.hovered = False
+        self.image = image
+        # Crear surface transparente
+        self.surface = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+        self.surface.fill((*color, 150))  # Agregamos alpha 150
+
+    def draw(self, screen):
+        '''color = self.hover_color if self.hovered else self.color
+        pygame.draw.rect(surface, color, self.rect)
+        if self.text:
+            font = pygame.font.Font(None, 30)
+            text_surface = font.render(self.text, True, (0, 0, 0))
+            text_rect = text_surface.get_rect(center=self.rect.center)
+            surface.blit(text_surface, text_rect)'''
+         # Color suave si está "hovered"
+        
+        if self.image:
+            screen.blit(self.image, self.rect)
+        else:
+            pygame.draw.rect(screen, self.hover_color if self.hovered else self.color, self.rect)
+        if self.text:
+            font = pygame.font.Font(None, 30)  # Usar fuente predeterminada solo si hay texto
+            text_surf = font.render(self.text, True, (0, 0, 0))
+            screen.blit(text_surf, text_surf.get_rect(center=self.rect.center))
+
+    def check_click(self, event):
+        if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+            pos = None
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pos = event.pos
+            elif event.type == pygame.FINGERDOWN:
+                pos = (event.x * WIDTH, event.y * HEIGHT)
+
+            if pos and self.rect.collidepoint(pos):
+                self.action()
+
+    def update_hover(self, pos):
+        self.hovered = self.rect.collidepoint(pos)
 # Funciones de visualización y eventos
 
 def draw_maze(screen, maze, tile_size,level):
@@ -215,12 +261,44 @@ async def mostrar_explosion(screen, x, y, explosion_frames):
         await asyncio.sleep(0.1)# Velocidad de animación
     await asyncio.sleep(0.5)
 
-def show_pause_menu(screen):
+async def show_pause_menu(screen):
+    
+    icon_up = pygame.transform.scale(
+    pygame.image.load("./images/flecha-arriba.png").convert_alpha(), (80, 80)
+    )
+    icon_down = pygame.transform.scale(
+    pygame.image.load("./images/flecha-abajo.png").convert_alpha(), (80, 80)
+    )
+    icon_ok = pygame.transform.scale(
+    pygame.image.load("./images/ok_button.png").convert_alpha(), (80, 80)
+    )
+    selected_option = 0
+    def option_up():
+        nonlocal selected_option
+        selected_option = (selected_option - 1) % len(options)
+    def option_down():
+        nonlocal selected_option
+        selected_option = (selected_option + 1) % len(options)
+    def select_option():
+        nonlocal selected_option
+        enter_event = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)
+        pygame.event.post(enter_event)
+        
+    botones_touch = []
+    # Definir los botones en la izquierda ahora:
+    btn_up = pygame.Rect(150, HEIGHT - 300, 80, 80)
+    btn_down = pygame.Rect(150, HEIGHT - 100, 80, 80)
+    btn_accept = pygame.Rect(150, HEIGHT - 200, 80, 80) 
+    botones_touch = [
+            BotonTouch(btn_up, lambda: option_up(), image=icon_up),
+            BotonTouch(btn_down, lambda: option_down(), image=icon_down),
+            BotonTouch(btn_accept, lambda: select_option(), image=icon_ok),
+    ]
     font = pygame.font.Font(None, 60)
     small_font = pygame.font.Font(None, 40)
     clock = pygame.time.Clock()
     
-    selected_option = 0
+    
     options = ["Continuar", "Volver al Menú Principal"]
 
     while True:
@@ -235,7 +313,8 @@ def show_pause_menu(screen):
             color = (255, 255, 0) if i == selected_option else (255, 255, 255)
             text = small_font.render(option, True, color)
             screen.blit(text, text.get_rect(center=(WIDTH//2, HEIGHT//2 + i * 60)))
-        
+        for boton in botones_touch:
+            boton.draw(screen)
         pygame.display.flip()
         from menu import main_menu
         
@@ -250,37 +329,75 @@ def show_pause_menu(screen):
                     selected_option = (selected_option + 1) % len(options)
                 elif event.key == pygame.K_RETURN:
                     if(selected_option==1):
-                        return main_menu(screen, start_game)
+                        return await main_menu(screen, start_game)
                     return
+            elif event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                pos = None
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pos = event.pos  # (x, y) del click
+                elif event.type == pygame.FINGERDOWN:
+                    pos = (event.x * WIDTH, event.y * HEIGHT)  # Normalizado (0-1) en FINGERDOWN
+
+                if pos and botones_touch:
+                    for boton in botones_touch:
+                        if boton.rect.collidepoint(pos):
+                            boton.action()
+        await asyncio.sleep(0)
         clock.tick(30)
 
 
-def handle_game_events(player, maze,screen,huellas):
+async def handle_game_events(player, maze, screen, huellas, botones_touch=None):
     global music_on
+    moved = False
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
+
         elif event.type == pygame.KEYDOWN:
             prev_pos = (player.rect.centerx, player.rect.centery)
-            if event.key == pygame.K_LEFT: player.move(-1, 0, maze)
-            if event.key == pygame.K_RIGHT: player.move(1, 0, maze)
-            if event.key == pygame.K_UP: player.move(0, -1, maze)
-            if event.key == pygame.K_DOWN: player.move(0, 1, maze)
-            moved = True
+            if event.key == pygame.K_LEFT:
+                player.move(-1, 0, maze)
+                moved = True
+            if event.key == pygame.K_RIGHT:
+                player.move(1, 0, maze)
+                moved = True
+            if event.key == pygame.K_UP:
+                player.move(0, -1, maze)
+                moved = True
+            if event.key == pygame.K_DOWN:
+                player.move(0, 1, maze)
+                moved = True
             if moved:
                 huellas.append(Huella(prev_pos))
-            if event.key == pygame.K_p: show_pause_menu(screen)
-            if event.key == pygame.K_m: 
+
+            if event.key == pygame.K_p:
+               await show_pause_menu(screen)
+            if event.key == pygame.K_m:
                 if music_on:
                     pygame.mixer.music.pause()
                     music_on = False
                 else:
                     pygame.mixer.music.unpause()
                     music_on = True
-            elif event.key == pygame.K_g:  # 👈 Truco para ganar el nivel
+            elif event.key == pygame.K_g:  # Truco para ganar el nivel
                 return "WIN"
+
+        elif event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+            pos = None
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pos = event.pos  # (x, y) del click
+            elif event.type == pygame.FINGERDOWN:
+                pos = (event.x * WIDTH, event.y * HEIGHT)  # Normalizado (0-1) en FINGERDOWN
+
+            if pos and botones_touch:
+                for boton in botones_touch:
+                    if boton.rect.collidepoint(pos):
+                        boton.action()
+    await asyncio.sleep(0)
     return True
+
 def render_multiline_text(text, font, color, max_width):
     words = text.split(' ')
     lines = []
@@ -398,7 +515,7 @@ def draw_lives(screen, player,heart_img,width):
     screen.blit(heart_img, (width-30, 10))
     screen.blit(text, (width, 12))
 
-def show_win_screen(screen, time_taken, moves):
+async def show_win_screen(screen, time_taken, moves):
     
     pygame.mixer.music.load("./win_sound.wav")
     pygame.mixer.music.play()
@@ -412,36 +529,62 @@ def show_win_screen(screen, time_taken, moves):
     font_small = pygame.font.Font(None, 40)
     screen.blit(background, (0, 0))
     text1 = font_big.render("¡Ganaste!", True, WHITE)
-    text2 = font_small.render("Presiona una tecla para continuar", True, WHITE)
+    text2 = font_small.render("Toca la pantalla o presiona una tecla para continuar", True, WHITE)
     screen.blit(text1, (WIDTH//2 - text1.get_width()//2, HEIGHT//3))
     screen.blit(text2, (WIDTH//2 - text2.get_width()//2, HEIGHT//2))
     pygame.display.flip()
-    wait_for_key()
+    waiting=True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                await exit_game()
+            elif event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
+                waiting = False
+        await asyncio.sleep(0)
     
     pygame.mixer.music.stop()
     
     from menu import main_menu
     screen = pygame.display.set_mode((WIDTH, HEIGHT))#, pygame.FULLSCREEN)
-    main_menu(screen, start_game)
-
-def show_loss_screen(screen, time_taken, moves):#se usa 
+    await main_menu(screen, start_game)
     
-    with open("stats.txt", "w") as file:
-        file.write(f"{round(time_taken, 2)}\n{moves}")
-        
+    
+
+async def show_loss_screen(screen, time_taken, moves):
+    # Guardar en memoria en lugar de archivo
+    global last_time_taken, last_moves
+    last_time_taken = round(time_taken, 2)
+    last_moves = moves
+
     pygame.mixer.music.load("lose_sound.wav")
     pygame.mixer.music.play()
+
     font = pygame.font.Font(None, 50)
-    screen.fill((200, 0, 0))
-    text1 = font.render("¡Has sido atrapado!", True, WHITE)
-    text2 = font.render("Presiona cualquier tecla para volver", True, WHITE)
-    screen.blit(text1, (WIDTH//2 - text1.get_width()//2, HEIGHT//3))
-    screen.blit(text2, (WIDTH//2 - text2.get_width()//2, HEIGHT//2))
-    pygame.display.flip()
-    wait_for_key()
+    clock = pygame.time.Clock()
+
+    waiting = True
+    while waiting:
+        screen.fill((200, 0, 0))
+        text1 = font.render("¡Has sido atrapado!", True, WHITE)
+        text2 = font.render("Presiona cualquier tecla para volver", True, WHITE)
+        screen.blit(text1, (WIDTH//2 - text1.get_width()//2, HEIGHT//3))
+        screen.blit(text2, (WIDTH//2 - text2.get_width()//2, HEIGHT//2))
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                waiting = False
+
+        await asyncio.sleep(0)
+        clock.tick(30)
+
     from menu import main_menu
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))#, pygame.FULLSCREEN)
-    main_menu(screen, start_game)  # Pasa ambos argumentos: screen y start_game
+    await main_menu(screen, start_game)
+
+    
 
 '''def draw_level_indicator(screen, level):
     
@@ -449,6 +592,14 @@ def show_loss_screen(screen, time_taken, moves):#se usa
     font = pygame.font.Font(None, 36)
     text = font.render(f"Nivel {level}", True, BLACK)
     screen.blit(text, (10, 10))'''
+async def pausar_juego(screen):
+    global pausado
+    if not pausado:
+        pausado = True
+        await show_pause_menu(screen)
+        pausado = False
+
+
 
 
 # Juego principal
@@ -456,7 +607,7 @@ def show_loss_screen(screen, time_taken, moves):#se usa
 async def start_game(screen,initial_level=1):
     
     
-    
+    pausa_pendiente = False
     "./images/player/frame_{i}_delay-0.1s.png"
     explosion_frames = []
     for i in range(9):  # Cambia NUMERO_FRAMES por el número correcto
@@ -471,6 +622,53 @@ async def start_game(screen,initial_level=1):
     player_start_time = time.time()
     efecto_hurt = pygame.mixer.Sound("./images/hurt.ogg")
     win_sound = pygame.mixer.Sound("./win_sound.wav")
+    icon_pause = pygame.image.load("./images/pausa.png").convert_alpha()
+    icon_pause = pygame.transform.scale(icon_pause, (80, 80)).convert_alpha()
+    
+    botones_touch = []
+    # Definir los botones en la izquierda ahora:
+    btn_pause = pygame.Rect(WIDTH - 150, 20, 100, 50)  # Botón de pausa arriba a la derecha
+    btn_up = pygame.Rect(150, HEIGHT - 300, 80, 80)
+    btn_down = pygame.Rect(150, HEIGHT - 100, 80, 80)
+    btn_left = pygame.Rect(50, HEIGHT - 200, 80, 80)
+    btn_right = pygame.Rect(250, HEIGHT - 200, 80, 80)
+    btn_accept = pygame.Rect(150, HEIGHT - 200, 80, 80) 
+    
+    btn_pause = pygame.Rect(WIDTH - 150, 20, 100, 50)
+    
+    
+     #ig:amarillocors
+    def marcar_pausa():
+        nonlocal pausa_pendiente
+        pausa_pendiente = True
+
+    pausa_pendiente = False
+    
+    
+    btn_pause = pygame.Rect(
+    WIDTH // 2 - 40,  # Centrado horizontalmente
+    0,  # Arriba verticalmente
+    50, 50  # Tamaño del botón
+    )
+    
+    boton_pause = BotonTouch(
+    btn_pause,
+    lambda: marcar_pausa(),
+    color=(230, 230, 230),
+    hover_color=(255, 200, 200),
+    image=icon_pause
+)
+
+    botones_touch = [
+            BotonTouch(btn_up, lambda: player.move( 0, -1, maze["grid"] )),
+            BotonTouch(btn_down, lambda: player.move(0, 1, maze["grid"])),
+            BotonTouch(btn_left, lambda: player.move(-1, 0, maze["grid"])),
+            BotonTouch(btn_right, lambda: player.move(1, 0, maze["grid"])),
+            BotonTouch(btn_accept, lambda: print("OK"), color=(200, 200, 0), hover_color=(255, 255, 0), text="OK"),
+            boton_pause 
+ # BOTÓN PAUSA
+            
+]
     
     while level <= LEVELS:
         desired_rows = 21 + level * 2
@@ -514,15 +712,20 @@ async def start_game(screen,initial_level=1):
         # Cargar sonido de comer corazón
         eat_heart_sound = pygame.mixer.Sound("./images/corazon/corazon-comido.wav")
         
+                # 🎯 CREAR Botones touch ligados al jugador
         
-        
+
+        #btn_pause = pygame.Rect(WIDTH - 100, 30, 60, 60)  # Arriba a la derecha
+       # boton_pause = BotonTouch(btn_pause, lambda: marcar_pausa(), color=(230, 230, 230), hover_color=(255, 200, 200), image=icon_pause)
+
         
         maze = generate_maze(rows, cols)
         player = Player(tile_size)
         monsters = [Monster(maze["grid"], tile_size, 800 - level * 100, level,player) for _ in range(6 + level * 2)]
         corazones = [Corazon(maze["grid"], tile_size, level,player) for _ in range(6 + level * 2)]
         goal = pygame.Rect((cols - 2) * tile_size, (rows - 2) * tile_size, tile_size, tile_size)
-
+        
+        
         await transition_screen(screen, level)
         
         tiempo_frame = 100  # milisegundos entre frames (0.1s)
@@ -532,13 +735,32 @@ async def start_game(screen,initial_level=1):
         
         running = True
         last_wall_move_time = pygame.time.get_ticks()
+        
+        def marcar_pausa():
+            nonlocal pausa_pendiente
+            pausa_pendiente = True
 
         while running:
-            event_result = handle_game_events(player, maze["grid"], screen,huellas)
+            event_result =await handle_game_events(player, maze["grid"], screen,huellas,botones_touch)
             if event_result == "WIN":
                 level += 1
                 break
             running = event_result
+            if pausa_pendiente:
+                await show_pause_menu(screen)
+                pausa_pendiente = False
+
+            #botones dibujos
+            pygame.draw.rect(screen, (0, 200, 0), btn_up)
+            pygame.draw.rect(screen, (0, 200, 0), btn_down)
+            pygame.draw.rect(screen, (0, 200, 0), btn_left)
+            pygame.draw.rect(screen, (0, 200, 0), btn_right)
+            pygame.draw.rect(screen, (200, 200, 0), btn_accept)
+
+       
+
+            
+            
             
             
             # Control de animacion
@@ -564,7 +786,7 @@ async def start_game(screen,initial_level=1):
                         await player.retroceder_camino(screen, maze,level)
                         player.vidas-=1
                     else:
-                        show_loss_screen(screen, time.time() - player_start_time, player.moves)
+                        await show_loss_screen(screen, time.time() - player_start_time, player.moves)
                         return
 
             if player.rect.colliderect(goal):
@@ -606,6 +828,11 @@ async def start_game(screen,initial_level=1):
             
             for corazon in corazones:
                 corazon.draw(screen, frame_actual_player)
+           
+                
+            for boton in botones_touch:
+                boton.draw(screen)
+            
             
             draw_lives(screen, player,heart_img,1220)
             pygame.display.flip()
@@ -614,12 +841,15 @@ async def start_game(screen,initial_level=1):
             if level >= 3 and current_time - last_wall_move_time > 1750:
                 move_walls_dynamically(maze["grid"], player)
                 last_wall_move_time = current_time
+            if pausa_pendiente:
+                await show_pause_menu(screen)
+                pausa_pendiente = False
 
             dt = clock.tick(60)
             tiempo_acumulado += dt
             await asyncio.sleep(0)
 
     time_taken = round(time.time() - player_start_time, 2)
-    show_win_screen(screen, time_taken, player.moves)
+    await show_win_screen(screen, time_taken, player.moves)
 def draw_sound_button(screen, rect, muted, sound_on_img, sound_off_img):
     screen.blit(sound_off_img if muted else sound_on_img, rect.topleft)
