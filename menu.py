@@ -23,7 +23,8 @@ async def select_level_menu(screen, start_game_func):
     background = pygame.transform.scale(background, (WIDTH, HEIGHT))
     pygame.font.init()
     font = pygame.font.Font(None, 36)
-
+    logo = pygame.image.load("images/select-level.png").convert_alpha()
+    
     spacing = 20
     button_width, button_height = 80, 50
     total_width = 6 * button_width + 6 * spacing
@@ -36,11 +37,29 @@ async def select_level_menu(screen, start_game_func):
             start_game_func(screen, lvl)
         return start
 
+    
     buttons = [
-        Button(start_x + i * (button_width + spacing), y, button_width, button_height, str(i+1), (255,255,255), action=create_action(i+1))
-        for i in range(6)
+    Button(
+        start_x + i * (button_width + spacing),
+        y,
+        button_width,
+        button_height,
+        action=create_action(i + 1),
+        image=pygame.transform.scale(
+            pygame.image.load(f"./images/SELECT/{i + 1}.png").convert_alpha(),
+            (button_width, button_height)
+        )
+    )
+    for i in range(6)
     ]
-    return_to_menu_button = Button(start_x + 6 * (button_width + spacing), y, button_width, button_height, "Volver", (255, 100, 100))
+
+    return_to_menu_button = Button(
+        start_x + 6 * (button_width + spacing), y, button_width, button_height,
+        image=pygame.transform.scale(
+            pygame.image.load(f"./images/SELECT/your_text.png").convert_alpha(),
+            (button_width, button_height)
+        )
+    )
     buttons.append(return_to_menu_button)
     
     selected_option = 0
@@ -75,8 +94,7 @@ async def select_level_menu(screen, start_game_func):
     selecting = True
     while selecting:
         screen.blit(background, (0, 0))
-        title = font.render("Selecciona un nivel", True, WHITE)
-        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 3))
+        screen.blit(logo, (WIDTH // 2 - logo.get_width() // 2, HEIGHT // 3))
 
         # Dibujar botones de nivel
         for i, button in enumerate(buttons):
@@ -95,9 +113,9 @@ async def select_level_menu(screen, start_game_func):
                 exit_game()
             
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP:
+                if event.key == pygame.K_LEFT:
                     selected_option = (selected_option - 1) % len(buttons)
-                elif event.key == pygame.K_DOWN:
+                elif event.key == pygame.K_RIGHT:
                     selected_option = (selected_option + 1) % len(buttons)
                 elif event.key == pygame.K_RETURN:
                     
@@ -245,6 +263,8 @@ async def main_menu(screen, start_game_func):
             color = (255, 255, 0) if i == selected_option else (255, 255, 255)
             text = small_font.render(option, True, color)
             screen.blit(text, text.get_rect(center=(WIDTH//2, HEIGHT//2 + i * 60 + 100)))
+            
+        
         for boton in botones_touch:
             boton.draw(screen)    
         pygame.display.flip()

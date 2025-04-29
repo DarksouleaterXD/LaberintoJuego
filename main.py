@@ -6,7 +6,7 @@ import asyncio
 
 async def main():
     pygame.init()
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))#, pygame.FULLSCREEN)
+    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)#, pygame.FULLSCREEN)
     await main_menu(screen, start_game)  # Pasa ambos argumentos: screen y start_game
 
 asyncio.run(main())

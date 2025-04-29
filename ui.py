@@ -2,20 +2,23 @@ import pygame
 import types
 
 class Button:
-    def __init__(self, x, y, width, height, text, color, action=None):
+    def __init__(self, x, y, width, height, text="", color=(255, 255, 255), action=None, image=None):
         self.rect = pygame.Rect(x, y, width, height)
-        self.color = color
         self.text = text
+        self.color = color
         self.action = action
-        self.font = pygame.font.Font(None, 36)
+        self.image = image
 
     def draw(self, screen):
-        pygame.draw.rect(screen, self.color, self.rect)
-        text_surface = self.font.render(self.text, True, (0, 0, 0))
-        text_rect = text_surface.get_rect(center=self.rect.center)
-        screen.blit(text_surface, text_rect)
+        if self.image:
+            screen.blit(self.image, self.rect)
+        else:
+            pygame.draw.rect(screen, self.color, self.rect)
+            # (Render text here if needed)
 
     def check_click(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and self.rect.collidepoint(event.pos):
-            if callable(self.action):
+            if self.action:
                 self.action()
+                return True
+        return False
