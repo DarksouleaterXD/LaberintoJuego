@@ -149,6 +149,7 @@ async def select_level_menu(screen, start_game_func):
 
 async def main_menu(screen, start_game_func):
     pygame.init()
+
     pygame.mixer.music.load("./images/nivel5.ogg")
     pygame.mixer.music.play()
     clock = pygame.time.Clock()

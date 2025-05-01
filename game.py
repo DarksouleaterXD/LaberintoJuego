@@ -5,9 +5,15 @@ from maze import generate_maze, move_walls_dynamically
 from settings import WIDTH, HEIGHT, WHITE, BLACK, LEVELS
 import asyncio
 
+last_debug_events = []
 music_on = True
 pausado = False
 # Clases integradas directamente aquí
+def draw_debug_message(screen, messages, y_offset=10):
+    font_debug = pygame.font.SysFont(None, 24)
+    for i, message in enumerate(messages):
+        text = font_debug.render(message, True, WHITE)
+        screen.blit(text, (10, y_offset + i * 25))
 
 class Player:
     def __init__(self, tile_size):
@@ -78,7 +84,7 @@ class Monster:
         self.maze = maze
         self.speed = speed
         self.level = level
-        self.player=player
+        self.player = player
         self.x, self.y = self.random_position()
         self.rect = pygame.Rect(self.x * tile_size, self.y * tile_size, tile_size, tile_size)
         self.last_move_time = pygame.time.get_ticks()
@@ -166,8 +172,9 @@ class Corazon:
                     return x, y
 
     def draw(self, screen, frame=0):
-        screen.blit(self.frames[frame],self.rect)
-    
+        screen.blit(self.frames[frame], self.rect)
+
+
 class Huella:
     def __init__(self, pos, duracion=2000):
         self.pos = pos
@@ -178,8 +185,10 @@ class Huella:
         self.tiempo_restante -= dt
         if self.tiempo_restante <= 0:
             self.tiempo_restante = 0  # Asegura que no sea negativo
+
     def draw(self, screen, imagen):
         screen.blit(imagen, (self.pos[0] - imagen.get_width()//2, self.pos[1] - imagen.get_height()//2))             
+
 
 class BotonTouch:
     def __init__(self, rect, action, color=(0, 200, 0), hover_color=(0, 255, 0), text="",image=None):
@@ -202,8 +211,8 @@ class BotonTouch:
             text_surface = font.render(self.text, True, (0, 0, 0))
             text_rect = text_surface.get_rect(center=self.rect.center)
             surface.blit(text_surface, text_rect)'''
-         # Color suave si está "hovered"
-        
+        # Color suave si está "hovered"
+
         if self.image:
             screen.blit(self.image, self.rect)
         else:
@@ -228,10 +237,10 @@ class BotonTouch:
         self.hovered = self.rect.collidepoint(pos)
 # Funciones de visualización y eventos
 
+
 def draw_maze(screen, maze, tile_size,level):
     floor_path = f"./images/suelo{level}.png"
     wall_path = f"./images/piedra{level}.png"
-    
     try:
         floor_img = pygame.image.load(floor_path)
     except:
@@ -345,12 +354,15 @@ async def show_pause_menu(screen):
         await asyncio.sleep(0)
         clock.tick(30)
 
-
+last_touch_time = 0
+TOUCH_COOLDOWN = 250
 async def handle_game_events(player, maze, screen, huellas, botones_touch=None):
-    global music_on
+    global music_on, last_touch_time, last_debug_event
     moved = False
-
+    now = pygame.time.get_ticks()
     for event in pygame.event.get():
+        if len(last_debug_events) > 2:
+            last_debug_events.pop(0)
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
@@ -373,7 +385,7 @@ async def handle_game_events(player, maze, screen, huellas, botones_touch=None):
                 huellas.append(Huella(prev_pos))
 
             if event.key == pygame.K_p:
-               await show_pause_menu(screen)
+                await show_pause_menu(screen)
             if event.key == pygame.K_m:
                 if music_on:
                     pygame.mixer.music.pause()
@@ -381,22 +393,29 @@ async def handle_game_events(player, maze, screen, huellas, botones_touch=None):
                 else:
                     pygame.mixer.music.unpause()
                     music_on = True
-            elif event.key == pygame.K_g:  # Truco para ganar el nivel
+            elif event.key == pygame.K_g:
                 return "WIN"
 
-        elif event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
-            pos = None
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                pos = event.pos  # (x, y) del click
-            elif event.type == pygame.FINGERDOWN:
-                pos = (event.x * WIDTH, event.y * HEIGHT)  # Normalizado (0-1) en FINGERDOWN
+        elif event.type in (pygame.FINGERDOWN, pygame.MOUSEBUTTONDOWN):
+            last_debug_events.append(str(event))
+            if now - last_touch_time < TOUCH_COOLDOWN:
+                continue  # Ignorar eventos demasiado cercanos
 
+            last_touch_time = now  # Actualizar último toque
+
+            pos = None
+            if event.type == pygame.FINGERDOWN:
+                pos = (event.x * WIDTH, event.y * HEIGHT)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                pos = event.pos
             if pos and botones_touch:
                 for boton in botones_touch:
                     if boton.rect.collidepoint(pos):
                         boton.action()
+
     await asyncio.sleep(0)
     return True
+
 
 def render_multiline_text(text, font, color, max_width):
     words = text.split(' ')
@@ -606,7 +625,8 @@ async def pausar_juego(screen):
 
 async def start_game(screen,initial_level=1):
     
-    
+    pygame.init()
+    pygame.font.init()
     pausa_pendiente = False
     "./images/player/frame_{i}_delay-0.1s.png"
     explosion_frames = []
@@ -766,12 +786,6 @@ async def start_game(screen,initial_level=1):
             pygame.draw.rect(screen, (0, 200, 0), btn_right)
             pygame.draw.rect(screen, (200, 200, 0), btn_accept)
 
-       
-
-            
-            
-            
-            
             # Control de animacion
             if tiempo_acumulado >= tiempo_frame:
                 frame_actual_monster = (frame_actual_monster + 1) % len(monsters[0].frames)
@@ -804,13 +818,12 @@ async def start_game(screen,initial_level=1):
                 break
 
             screen.fill(WHITE)
-             #parte que se muestran las huellas
+            #parte que se muestran las huellas
             for huella in huellas[:]:
                 huella.actualizar(dt)
-            
+
             huellas = [h for h in huellas if h.tiempo_restante > 0]
-            
-            
+
             for y, row in enumerate(maze["grid"]):
                 for x, tile in enumerate(row):
                     if tile == 0:
@@ -818,18 +831,16 @@ async def start_game(screen,initial_level=1):
                             screen.blit(floor_img, (x * tile_size, y * tile_size))
                         else:
                             screen.blit(floor_img, (x * tile_size, y * tile_size))
-                            
+
                     else:
                         screen.blit(wall_img, (x * tile_size, y * tile_size))
 
             screen.blit(goal_img, goal.topleft)
-            
+
             huellas.append(Huella(player.rect.center))
             for huella in huellas:
                  huella.draw(screen, imagen_huella)
-            
-            
-            
+
             player.draw(screen, frame_actual_player)
             for monster in monsters:
                 monster.draw(screen, frame_actual_monster)
@@ -854,9 +865,9 @@ async def start_game(screen,initial_level=1):
                 await show_pause_menu(screen)
                 pausa_pendiente = False
 
-            dt = clock.tick(60)
+            dt = clock.tick(30)
             tiempo_acumulado += dt
-            await asyncio.sleep(0)
+            await asyncio.sleep(0.01)
 
     time_taken = round(time.time() - player_start_time, 2)
     await show_win_screen(screen, time_taken, player.moves)
