@@ -105,11 +105,14 @@ def main_menu(screen, start_game_func):
     tiempo_frame = 100
     tiempo_acumulado = 0
     frame_actual = 0
+    play_img = pygame.image.load(f"./images/MAIN/1.png").convert_alpha()
+    select_img = pygame.image.load(f"./images/MAIN/2.png").convert_alpha()
+    exit_img = pygame.image.load(f"./images/MAIN/3.png").convert_alpha()
     
     button_width, button_height = 150, 50
-    play_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y, button_width + 80, button_height, "Jugar", WHITE, action=lambda: start_game_func(screen, initial_level=1)) 
-    exit_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y + 140, button_width + 80, button_height, "Salir", (200, 0, 0), exit_game)
-    select_level_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y + 70, button_width + 80, button_height, "Seleccionar Nivel", WHITE, action=lambda: select_level_menu(screen, start_game_func))
+    play_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y, button_width + 80, button_height, "Jugar", WHITE, action=lambda: start_game_func(screen, initial_level=1), image=play_img) 
+    exit_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y + 140, button_width + 80, button_height, "Salir", (200, 0, 0), exit_game, image=exit_img)
+    select_level_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y + 70, button_width + 80, button_height, "Seleccionar Nivel", WHITE, action=lambda: select_level_menu(screen, start_game_func), image=select_img)
     
     running = True
     while running:
