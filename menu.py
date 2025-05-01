@@ -38,13 +38,19 @@ def select_level_menu(screen, start_game_func):
             start_game_func(screen, lvl)
         return start
 
+    image1= pygame.image.load(f"./images/SELECT/1.png").convert_alpha()
+    image2= pygame.image.load(f"./images/SELECT/2.png").convert_alpha()
+    image3= pygame.image.load(f"./images/SELECT/3.png").convert_alpha()
+    image4= pygame.image.load(f"./images/SELECT/4.png").convert_alpha()
+    image5= pygame.image.load(f"./images/SELECT/5.png").convert_alpha()
+    image6= pygame.image.load(f"./images/SELECT/6.png").convert_alpha()
 
-    button_lvl1 = Button(start_x + 0 * (button_width + spacing), y, button_width, button_height, "1", (255,255,255), action=create_action(1))
-    button_lvl2 = Button(start_x + 1 * (button_width + spacing), y, button_width, button_height, "2", (255,255,255), action=create_action(2))
-    button_lvl3 = Button(start_x + 2 * (button_width + spacing), y, button_width, button_height, "3", (255,255,255), action=create_action(3))
-    button_lvl4 = Button(start_x + 3 * (button_width + spacing), y, button_width, button_height, "4", (255,255,255), action=create_action(4))
-    button_lvl5 = Button(start_x + 4 * (button_width + spacing), y, button_width, button_height, "5", (255,255,255), action=create_action(5))
-    button_lvl6 = Button(start_x + 5 * (button_width + spacing), y, button_width, button_height, "6", (255,255,255), action=create_action(6))
+    button_lvl1 = Button(start_x + 0 * (button_width + spacing), y, button_width, button_height, "1", (255,255,255), action=create_action(1), image=image1)
+    button_lvl2 = Button(start_x + 1 * (button_width + spacing), y, button_width, button_height, "2", (255,255,255), action=create_action(2), image=image2)
+    button_lvl3 = Button(start_x + 2 * (button_width + spacing), y, button_width, button_height, "3", (255,255,255), action=create_action(3), image=image3)
+    button_lvl4 = Button(start_x + 3 * (button_width + spacing), y, button_width, button_height, "4", (255,255,255), action=create_action(4), image=image4)
+    button_lvl5 = Button(start_x + 4 * (button_width + spacing), y, button_width, button_height, "5", (255,255,255), action=create_action(5), image=image5)
+    button_lvl6 = Button(start_x + 5 * (button_width + spacing), y, button_width, button_height, "6", (255,255,255), action=create_action(6), image=image6)
 
     buttons = [button_lvl1, button_lvl2, button_lvl3, button_lvl4, button_lvl5, button_lvl6]
 
@@ -105,9 +111,9 @@ def main_menu(screen, start_game_func):
     tiempo_frame = 100
     tiempo_acumulado = 0
     frame_actual = 0
-    play_img = pygame.image.load(f"./images/MAIN/1.png").convert_alpha()
-    select_img = pygame.image.load(f"./images/MAIN/2.png").convert_alpha()
-    exit_img = pygame.image.load(f"./images/MAIN/3.png").convert_alpha()
+    play_img = pygame.image.load("./images/MAIN/1.png").convert_alpha()
+    select_img = pygame.image.load("./images/MAIN/2.png").convert_alpha()
+    exit_img = pygame.image.load("./images/MAIN/3.png").convert_alpha()
     
     button_width, button_height = 150, 50
     play_button = Button(WIDTH // 2 - button_width // 2 - 7, buttons_y, button_width + 80, button_height, "Jugar", WHITE, action=lambda: start_game_func(screen, initial_level=1), image=play_img) 
