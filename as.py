@@ -89,6 +89,7 @@ async def start_game(screen,initial_level=1):
         
         running = True
         last_wall_move_time = pygame.time.get_ticks()
+        
         botones_touch = [
             BotonTouch(btn_up, lambda: player.move( 0, -1, maze["grid"] )),
             BotonTouch(btn_down, lambda: player.move(0, 1, maze["grid"])),
@@ -202,6 +203,7 @@ async def start_game(screen,initial_level=1):
 
     time_taken = round(time.time() - player_start_time, 2)
     await show_win_screen(screen, time_taken, player.moves)
+    
 async def handle_game_events(player, maze, screen, huellas, botones_touch=None):
     global music_on
     moved = False

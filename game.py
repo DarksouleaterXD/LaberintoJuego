@@ -628,10 +628,13 @@ async def start_game(screen,initial_level=1):
     botones_touch = []
     # Definir los botones en la izquierda ahora:
     btn_pause = pygame.Rect(WIDTH - 150, 20, 100, 50)  # Botón de pausa arriba a la derecha
-    btn_up = pygame.Rect(150, HEIGHT - 300, 80, 80)
-    btn_down = pygame.Rect(150, HEIGHT - 100, 80, 80)
-    btn_left = pygame.Rect(50, HEIGHT - 200, 80, 80)
-    btn_right = pygame.Rect(250, HEIGHT - 200, 80, 80)
+    center_x = 150
+    center_y = HEIGHT - 200
+    spacing = 60
+    btn_up = pygame.Rect(center_x, center_y - spacing, 80, 80)
+    btn_down = pygame.Rect(center_x, center_y + spacing, 80, 80)
+    btn_left = pygame.Rect(center_x - spacing, center_y, 80, 80)
+    btn_right = pygame.Rect(center_x + spacing, center_y, 80, 80)
     btn_accept = pygame.Rect(150, HEIGHT - 200, 80, 80) 
     
     btn_pause = pygame.Rect(WIDTH - 150, 20, 100, 50)
@@ -658,13 +661,19 @@ async def start_game(screen,initial_level=1):
     hover_color=(255, 200, 200),
     image=icon_pause
 )
-
+    icon_up = pygame.transform.scale(pygame.image.load("./images/Flecha_up.png").convert_alpha(), (70, 70))
+    icon_down = pygame.transform.scale(pygame.image.load("./images/Flecha_down.png").convert_alpha(), (70, 70))
+    icon_left = pygame.transform.scale(pygame.image.load("./images/Flecha_left.png").convert_alpha(), (70, 70))
+    icon_right = pygame.transform.scale(pygame.image.load("./images/Flecha_right.png").convert_alpha(), (70, 70))
+    icon_up.set_alpha(200)
+    icon_down.set_alpha(200)
+    icon_right.set_alpha(200)
+    icon_left.set_alpha(200)
     botones_touch = [
-            BotonTouch(btn_up, lambda: player.move( 0, -1, maze["grid"] )),
-            BotonTouch(btn_down, lambda: player.move(0, 1, maze["grid"])),
-            BotonTouch(btn_left, lambda: player.move(-1, 0, maze["grid"])),
-            BotonTouch(btn_right, lambda: player.move(1, 0, maze["grid"])),
-            BotonTouch(btn_accept, lambda: print("OK"), color=(200, 200, 0), hover_color=(255, 255, 0), text="OK"),
+            BotonTouch(btn_up, lambda: player.move( 0, -1, maze["grid"] ), image=icon_up),
+            BotonTouch(btn_down, lambda: player.move(0, 1, maze["grid"]), image=icon_down),
+            BotonTouch(btn_left, lambda: player.move(-1, 0, maze["grid"]), image=icon_left),
+            BotonTouch(btn_right, lambda: player.move(1, 0, maze["grid"]), image=icon_right),
             boton_pause 
  # BOTÓN PAUSA
             
