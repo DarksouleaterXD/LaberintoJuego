@@ -468,6 +468,9 @@ def start_game(screen,initial_level=1):
     pygame.display.set_caption("Laberinto")
     clock = pygame.time.Clock()
     player_start_time = time.time()
+    time_limit = 30  # segundos para cada ciclo
+    timer = time_limit
+    last_timer_update = pygame.time.get_ticks()
     efecto_hurt = pygame.mixer.Sound("./images/hurt.mp3")
     win_sound = pygame.mixer.Sound("./win_sound.wav")
     
@@ -519,7 +522,7 @@ def start_game(screen,initial_level=1):
         maze = generate_maze(rows, cols)
         player = Player(tile_size)
         monsters = [Monster(maze["grid"], tile_size, 800 - level * 100, level,player) for _ in range(6 + level * 2)]
-        corazones = [Corazon(maze["grid"], tile_size, level,player) for _ in range(6 + level * 2)]
+        corazones = [Corazon(maze["grid"], tile_size, level,player) for _ in range(2 + level * 2)]
         goal = pygame.Rect((cols - 2) * tile_size, (rows - 2) * tile_size, tile_size, tile_size)
 
         transition_screen(screen, level)
@@ -607,12 +610,19 @@ def start_game(screen,initial_level=1):
                 corazon.draw(screen, frame_actual_player)
             
             draw_lives(screen, player,heart_img,1220)
+            draw_timer_bar(screen, timer, time_limit, 970, 15, 200, 20)
             pygame.display.flip()
 
-            current_time = pygame.time.get_ticks()
-            if level >= 3 and current_time - last_wall_move_time > 1750:
-                move_walls_dynamically(maze["grid"], player)
-                last_wall_move_time = current_time
+            current_ticks = pygame.time.get_ticks()
+            if current_ticks - last_timer_update >= 1000:
+                timer -= 1
+                last_timer_update = current_ticks
+                if timer <= 0:
+                    player.vidas -= 1
+                    timer = time_limit
+                    if player.vidas <= 0:
+                        show_loss_screen(screen, time.time() - player_start_time, player.moves)
+                        return
 
             dt = clock.tick(60)
             tiempo_acumulado += dt
@@ -622,3 +632,24 @@ def start_game(screen,initial_level=1):
     show_win_screen(screen, time_taken, player.moves)
 def draw_sound_button(screen, rect, muted, sound_on_img, sound_off_img):
     screen.blit(sound_off_img if muted else sound_on_img, rect.topleft)
+
+
+def draw_timer_bar(screen, timer, time_limit, x, y, width, height):
+    pygame.draw.rect(screen, (255, 255, 255), (x, y, width, height))
+    
+    # Determinar proporción y color según el tiempo
+    fill_ratio = timer / time_limit
+    filled_width = int(fill_ratio * width)
+    
+    if fill_ratio > 0.6:
+        color = (0, 255, 0)  # Verde
+    elif fill_ratio > 0.3:
+        color = (255, 165, 0)  # Naranja
+    else:
+        color = (255, 0, 0)  # Rojo
+
+    # Dibujar barra rellena
+    pygame.draw.rect(screen, color, (x, y, filled_width, height))
+
+    # Contorno negro
+    pygame.draw.rect(screen, (0, 0, 0), (x, y, width, height), 3)
