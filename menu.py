@@ -222,7 +222,47 @@ async def main_menu(screen, start_game_func):
     selected_option = 0
     options = ["Continuar", "Seleccionar Nivel", "Salir"]
     
+    spacing = 20
+    button_width, button_height = 200, 50
+    total_width = 6 * button_width + 6 * spacing
+    start_x = WIDTH // 2 - button_width // 2
+    y = HEIGHT // 2 + 30
     
+    buttons = [
+        
+    Button(
+        start_x,
+        y + 1 * (button_height + spacing),
+        button_width,
+        button_height,
+        image=pygame.transform.scale(
+            pygame.image.load(f"./images/MAIN/1.png").convert_alpha(),
+            (button_width, button_height)
+        )
+    ),
+    Button(
+        WIDTH // 2 - (button_width + 150) // 2,
+        y + 2 * (button_height + spacing),
+        button_width + 150,
+        button_height,
+        image=pygame.transform.scale(
+            pygame.image.load(f"./images/MAIN/2.png").convert_alpha(),
+            (button_width + 150, button_height)
+        )
+    ),
+    Button(
+        start_x,
+        y + 3 * (button_height + spacing),
+        button_width,
+        button_height,
+        image=pygame.transform.scale(
+            pygame.image.load(f"./images/MAIN/3.png").convert_alpha(),
+            (button_width, button_height)
+        )
+    ),
+    
+    
+    ]
     
     while running:
         '''if tiempo_acumulado >= tiempo_frame:
@@ -253,20 +293,16 @@ async def main_menu(screen, start_game_func):
 
         #play_button.draw(screen)
         #select_level_button.draw(screen)
-        #exit_button.draw(screen)
-
-        
-        
-        small_font = pygame.font.Font(None, 40)
-
-        for i, option in enumerate(options):
-            color = (255, 255, 0) if i == selected_option else (255, 255, 255)
-            text = small_font.render(option, True, color)
-            screen.blit(text, text.get_rect(center=(WIDTH//2, HEIGHT//2 + i * 60 + 100)))
-            
+        #exit_button.draw(screen)      
         
         for boton in botones_touch:
             boton.draw(screen)    
+            
+        # Dibujar botones de nivel
+        for i, button in enumerate(buttons):
+            if i == selected_option:
+                pygame.draw.rect(screen, (255, 255, 0), button.rect.inflate(10, 10), 3)
+            button.draw(screen)
         pygame.display.flip()
         
         for event in pygame.event.get():
