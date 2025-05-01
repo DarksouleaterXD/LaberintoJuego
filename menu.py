@@ -84,11 +84,14 @@ async def select_level_menu(screen, start_game_func):
     btn_left = pygame.Rect(WIDTH // 2 - btn_size*2, btn_y, btn_size, btn_size)
     btn_ok = pygame.Rect(WIDTH // 2 - btn_size // 2, btn_y, btn_size, btn_size)
     btn_right = pygame.Rect(WIDTH // 2 + btn_size, btn_y, btn_size, btn_size)
+    icon_left = pygame.transform.scale(pygame.image.load("./images/Flecha_left.png").convert_alpha(), (70, 70))
+    icon_right = pygame.transform.scale(pygame.image.load("./images/Flecha_right.png").convert_alpha(), (70, 70))
+    icon_ok = pygame.transform.scale(pygame.image.load("./images/ok_button.png").convert_alpha(), (80, 80))
 
     botones_touch = [
-        BotonTouch(btn_left, option_left, color=(200, 200, 0), hover_color=(255, 255, 0), text="<"),
-        BotonTouch(btn_ok, option_select, color=(200, 255, 200), hover_color=(255, 255, 255), text="OK"),
-        BotonTouch(btn_right, option_right, color=(200, 200, 0), hover_color=(255, 255, 0), text=">")
+        BotonTouch(btn_left, option_left, color=(200, 200, 0), hover_color=(255, 255, 0), image=icon_left),
+        BotonTouch(btn_ok, option_select, color=(200, 255, 200), hover_color=(255, 255, 255), image=icon_ok),
+        BotonTouch(btn_right, option_right, color=(200, 200, 0), hover_color=(255, 255, 0), image=icon_right)
     ]
 
     selecting = True
@@ -155,10 +158,10 @@ async def main_menu(screen, start_game_func):
     clock = pygame.time.Clock()
     pygame.display.set_caption("Menú - Laberinto")
     icon_up = pygame.transform.scale(
-    pygame.image.load("./images/flecha-arriba.png").convert_alpha(), (80, 80)
+    pygame.image.load("./images/Flecha_up.png").convert_alpha(), (80, 80)
     )
     icon_down = pygame.transform.scale(
-    pygame.image.load("./images/flecha-abajo.png").convert_alpha(), (80, 80)
+    pygame.image.load("./images/Flecha_down.png").convert_alpha(), (80, 80)
     )
     icon_ok = pygame.transform.scale(
     pygame.image.load("./images/ok_button.png").convert_alpha(), (80, 80)

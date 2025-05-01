@@ -23,7 +23,7 @@ class Player:
         self.rect = pygame.Rect(self.x * tile_size, self.y * tile_size, tile_size, tile_size)
         self.start_time = time.time()
         self.moves = 0
-        self.vidas= 3
+        self.vidas = 3
         self.historial = []
         self.frames = []
         for i in range(9):  # Asumiendo 17 frames del 0 al 16
@@ -32,7 +32,6 @@ class Player:
             imagen = pygame.transform.scale(imagen, (tile_size, tile_size))
             self.frames.append(imagen)
 
-        
 
     def move(self, dx, dy, maze):
         if 0 <= self.x + dx < len(maze[0]) and 0 <= self.y + dy < len(maze):
@@ -273,10 +272,10 @@ async def mostrar_explosion(screen, x, y, explosion_frames):
 async def show_pause_menu(screen):
     
     icon_up = pygame.transform.scale(
-    pygame.image.load("./images/flecha-arriba.png").convert_alpha(), (80, 80)
+    pygame.image.load("./images/Flecha_up.png").convert_alpha(), (80, 80)
     )
     icon_down = pygame.transform.scale(
-    pygame.image.load("./images/flecha-abajo.png").convert_alpha(), (80, 80)
+    pygame.image.load("./images/Flecha_down.png").convert_alpha(), (80, 80)
     )
     icon_ok = pygame.transform.scale(
     pygame.image.load("./images/ok_button.png").convert_alpha(), (80, 80)
@@ -306,8 +305,6 @@ async def show_pause_menu(screen):
     font = pygame.font.Font(None, 60)
     small_font = pygame.font.Font(None, 40)
     clock = pygame.time.Clock()
-    
-    
     options = ["Continuar", "Volver al Menú Principal"]
 
     while True:
@@ -751,11 +748,15 @@ async def start_game(screen,initial_level=1):
         maze = generate_maze(rows, cols)
         player = Player(tile_size)
         monsters = [Monster(maze["grid"], tile_size, 800 - level * 100, level,player) for _ in range(6 + level * 2)]
-        corazones = [Corazon(maze["grid"], tile_size, level,player) for _ in range(6 + level * 2)]
+        corazones = [Corazon(maze["grid"], tile_size, level,player) for _ in range(2 + level * 2)]
         goal = pygame.Rect((cols - 2) * tile_size, (rows - 2) * tile_size, tile_size, tile_size)
         
         
         await transition_screen(screen, level)
+        nivel_start_time = pygame.time.get_ticks()
+        last_life_loss_time = nivel_start_time
+        paused_time_accumulated = 0
+        last_life_loss_time = 0
         
         tiempo_frame = 100  # milisegundos entre frames (0.1s)
         tiempo_acumulado = 0
@@ -769,14 +770,21 @@ async def start_game(screen,initial_level=1):
             nonlocal pausa_pendiente
             pausa_pendiente = True
 
+        nivel_start_time = pygame.time.get_ticks()
+        last_life_loss_time = nivel_start_time
+        paused_time_accumulated = 0
         while running:
+            life_loss_interval = 30000
             event_result =await handle_game_events(player, maze["grid"], screen,huellas,botones_touch)
             if event_result == "WIN":
                 level += 1
                 break
             running = event_result
             if pausa_pendiente:
+                pausa_inicio = pygame.time.get_ticks()
                 await show_pause_menu(screen)
+                pausa_fin = pygame.time.get_ticks()
+                paused_time_accumulated += pausa_fin - pausa_inicio
                 pausa_pendiente = False
 
             #botones dibujos
@@ -855,9 +863,41 @@ async def start_game(screen,initial_level=1):
             
             
             draw_lives(screen, player,heart_img,1220)
+            current_time = pygame.time.get_ticks()
+            adjusted_time = current_time - paused_time_accumulated
+            time_since_last_loss = adjusted_time - last_life_loss_time
+            remaining_time_ratio = max(0, 1 - time_since_last_loss / life_loss_interval)
+            bar_width = 200
+            bar_height = 20
+            bar_x = 1220 - bar_width - 50
+            bar_y = 10
+
+            # Marco blanco
+            pygame.draw.rect(screen, WHITE, (bar_x, bar_y, bar_width, bar_height))
+            if remaining_time_ratio > 0.5:
+                bar_color = (50, 200, 50)   # Verde
+            elif remaining_time_ratio > 0.25:
+                bar_color = (255, 165, 0)   # Naranja
+            else:
+                bar_color = (200, 50, 50)
+            # Barra roja que se vacía
+            pygame.draw.rect(screen, bar_color, (bar_x, bar_y, int(bar_width * remaining_time_ratio), bar_height))
+            pygame.draw.rect(screen, BLACK, (bar_x, bar_y, bar_width, bar_height), width=3)
             pygame.display.flip()
 
             current_time = pygame.time.get_ticks()
+            if current_time - last_life_loss_time >= life_loss_interval:
+                if player.vidas > 0:
+                    efecto_hurt.play()
+                    print(player.vidas)
+                    player.vidas -= 1
+                    print(player.vidas)
+                    last_life_loss_time = current_time
+                    if player.vidas == 0:
+                        print("Perdiste")
+                        print(player.vidas)
+                        await show_loss_screen(screen, time.time() - player_start_time, player.moves)
+                        return
             if level >= 3 and current_time - last_wall_move_time > 1750:
                 move_walls_dynamically(maze["grid"], player)
                 last_wall_move_time = current_time
