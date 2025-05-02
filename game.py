@@ -270,7 +270,8 @@ async def mostrar_explosion(screen, x, y, explosion_frames):
     await asyncio.sleep(0.5)
 
 async def show_pause_menu(screen):
-    
+    last_touch_time = 0
+    TOUCH_COOLDOWN = 250
     icon_up = pygame.transform.scale(
     pygame.image.load("./images/Flecha_up.png").convert_alpha(), (80, 80)
     )
@@ -338,16 +339,20 @@ async def show_pause_menu(screen):
                         return await main_menu(screen, start_game)
                     return
             elif event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
-                pos = None
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    pos = event.pos  # (x, y) del click
-                elif event.type == pygame.FINGERDOWN:
-                    pos = (event.x * WIDTH, event.y * HEIGHT)  # Normalizado (0-1) en FINGERDOWN
+                current_time = pygame.time.get_ticks()
+                if current_time - last_touch_time < TOUCH_COOLDOWN:
+                    continue  # Ignorar toque duplicado
 
-                if pos and botones_touch:
-                    for boton in botones_touch:
-                        if boton.rect.collidepoint(pos):
-                            boton.action()
+                last_touch_time = current_time
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pos = event.pos
+                else:  # FINGERDOWN
+                    pos = (event.x * WIDTH, event.y * HEIGHT)
+
+                for boton in botones_touch:
+                    if boton.rect.collidepoint(pos):
+                        boton.action()
         await asyncio.sleep(0)
         clock.tick(30)
 
@@ -614,11 +619,8 @@ async def pausar_juego(screen):
         pausado = True
         await show_pause_menu(screen)
         pausado = False
-
-
-
-
 # Juego principal
+
 
 async def start_game(screen,initial_level=1):
     
