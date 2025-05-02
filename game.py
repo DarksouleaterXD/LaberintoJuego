@@ -420,7 +420,7 @@ def show_win_screen(screen, time_taken, moves):
     pygame.mixer.music.stop()
     
     from menu import main_menu
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))#, pygame.FULLSCREEN)
+    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
     main_menu(screen, start_game)
 
 def show_loss_screen(screen, time_taken, moves):#se usa 
@@ -439,7 +439,7 @@ def show_loss_screen(screen, time_taken, moves):#se usa
     pygame.display.flip()
     wait_for_key()
     from menu import main_menu
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))#, pygame.FULLSCREEN)
+    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
     main_menu(screen, start_game)  # Pasa ambos argumentos: screen y start_game
 
 '''def draw_level_indicator(screen, level):
@@ -464,7 +464,7 @@ def start_game(screen,initial_level=1):
         explosion_frames.append(frame)
     huellas = []
     level = initial_level
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))#, pygame.FULLSCREEN)
+    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
     pygame.display.set_caption("Laberinto")
     clock = pygame.time.Clock()
     player_start_time = time.time()
