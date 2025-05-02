@@ -19,6 +19,8 @@ def get_latest_stats():
         last_time, last_moves = "N/A", "N/A"
     return last_time, last_moves
 async def select_level_menu(screen, start_game_func):
+    last_touch_time = 0
+    touch_delay_ms = 300
     background = pygame.image.load("./images/fondo.jpeg").convert()
     background = pygame.transform.scale(background, (WIDTH, HEIGHT))
     pygame.font.init()
@@ -137,18 +139,19 @@ async def select_level_menu(screen, start_game_func):
                         return await start_game_func(screen, 6)
                     elif selected_option == 6:
                         return await main_menu(screen, start_game_func)
-                    
-                        
+
             for button in buttons:
                 button.check_click(event)
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN):
                 pos = event.pos if event.type == pygame.MOUSEBUTTONDOWN else (event.x * WIDTH, event.y * HEIGHT)
                 for boton in botones_touch:
-                    if boton.rect.collidepoint(pos):
-                        boton.action()
+                    current_time = pygame.time.get_ticks()
+                    if current_time - last_touch_time > touch_delay_ms:
+                        if boton.rect.collidepoint(pos):
+                            boton.action()
+                            last_touch_time = current_time
         await asyncio.sleep(0)
 
-    
 
 async def main_menu(screen, start_game_func):
     pygame.init()
@@ -183,12 +186,12 @@ async def main_menu(screen, start_game_func):
         
     botones_touch = []
     # Definir los botones en la izquierda ahora:
-    btn_up = pygame.Rect(150, HEIGHT - 300, 80, 80)
-    btn_down = pygame.Rect(150, HEIGHT - 100, 80, 80)
+    btn_up = pygame.Rect(150, HEIGHT - 100, 80, 80)
+    btn_down = pygame.Rect(150, HEIGHT - 300, 80, 80)
     btn_accept = pygame.Rect(150, HEIGHT - 200, 80, 80) 
     botones_touch = [
-            BotonTouch(btn_up, lambda: option_up(), image=icon_up),
-            BotonTouch(btn_down, lambda: option_down(), image=icon_down),
+            BotonTouch(btn_up, lambda: option_up(), image=icon_down),
+            BotonTouch(btn_down, lambda: option_down(), image=icon_up),
             BotonTouch(btn_accept, lambda: select_option(), image=icon_ok),
     ]
     def load_frame(n):
